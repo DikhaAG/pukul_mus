@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Game Pukul MUS</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: rgba(255, 255, 255, 0.06);
+        --line: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.65);
+        --good: #22c55e;
+        --bad: #ef4444;
+
+        --radius: 18px;
+        --gap: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial;
+        background:
+          radial-gradient(
+            1200px 700px at 20% 10%,
+            rgba(96, 165, 250, 0.18),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 600px at 80% 20%,
+            rgba(34, 197, 94, 0.12),
+            transparent 60%
+          ),
+          var(--bg);
+        color: var(--text);
+
+        /* FIX: jangan kunci konten ke tengah kalau layar sempit/pendek */
+        display: block;
+        min-height: 100vh;
+
+        /* FIX: padding responsif + aman untuk notch */
+        padding: max(12px, env(safe-area-inset-top))
+          max(12px, env(safe-area-inset-right))
+          max(12px, env(safe-area-inset-bottom))
+          max(12px, env(safe-area-inset-left));
+
+        cursor: none; /* custom hammer cursor (desktop) */
+        overflow-x: hidden;
+      }
+
+      /* wrapper pusat yang aman */
+      .page {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      .wrap {
+        width: min(980px, 100%);
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: var(--gap);
+
+        /* FIX: biar tidak nabrak tinggi layar kecil */
+        align-items: start;
+      }
+
+      /* Desktop medium */
+      @media (max-width: 1100px) {
+        .wrap {
+          grid-template-columns: 1fr 360px;
+        }
+      }
+
+      /* Tablet & mobile */
+      @media (max-width: 920px) {
+        body {
+          cursor: auto; /* cursor custom bikin “aneh” di touch */
+        }
+        .wrap {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+      }
+
+      .panel,
+      .side {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 14px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        min-width: 0; /* FIX: cegah overflow grid */
+      }
+
+      h1 {
+        font-size: 18px;
+        margin: 0 0 12px 0;
+        letter-spacing: 0.2px;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.18);
+        margin-bottom: 14px;
+      }
+
+      /* Mobile meta jadi 2 kolom biar tidak kepotong */
+      @media (max-width: 520px) {
+        .meta {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .pill {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        min-width: 0;
+      }
+      .pill .k {
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .pill .v {
+        font-weight: 700;
+        font-size: 16px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .pill .v.good {
+        color: var(--good);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        padding: 12px;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.18);
+        position: relative;
+        min-width: 0;
+      }
+
+      /* FIX: di layar super kecil, lubang jadi 2 kolom biar besar & ga kepotong */
+      @media (max-width: 360px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .hole {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background:
+          radial-gradient(
+            120px 90px at 50% 70%,
+            rgba(0, 0, 0, 0.5),
+            rgba(0, 0, 0, 0.1) 70%,
+            rgba(255, 255, 255, 0.03) 100%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.05),
+            rgba(255, 255, 255, 0.02)
+          );
+        overflow: hidden;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        /* FIX: hilangkan highlight tap di mobile */
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .mole {
+        width: 72%;
+        height: 72%;
+        pointer-events: none;
+        transform: translateY(120%) scale(0.9);
+        opacity: 0;
+        transition:
+          transform 160ms ease-out,
+          opacity 120ms ease-out;
+        filter: drop-shadow(0 18px 16px rgba(0, 0, 0, 0.4));
+        will-change: transform, opacity, filter;
+        object-fit: contain;
+      }
+
+      .hole.up .mole {
+        transform: translateY(0%) scale(1);
+        opacity: 1;
+      }
+
+      .hole.thud {
+        animation: thud 120ms ease-out;
+      }
+      @keyframes thud {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(0.97);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .mole.fallback-hit {
+        animation: moleHit 180ms ease-out;
+        filter: drop-shadow(0 18px 16px rgba(0, 0, 0, 0.4)) brightness(1.25)
+          saturate(1.2);
+      }
+      @keyframes moleHit {
+        0% {
+          transform: translateY(0%) scale(1);
+        }
+        40% {
+          transform: translateY(0%) scale(0.96) rotate(-2deg);
+        }
+        70% {
+          transform: translateY(0%) scale(1.02) rotate(2deg);
+        }
+        100% {
+          transform: translateY(0%) scale(1);
+        }
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+
+      button {
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 14px;
+        cursor: none;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      button:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+      }
+      button.primary {
+        background: rgba(96, 165, 250, 0.18);
+        border-color: rgba(96, 165, 250, 0.35);
+      }
+      button.danger {
+        background: rgba(239, 68, 68, 0.14);
+        border-color: rgba(239, 68, 68, 0.32);
+      }
+      button:disabled {
+        opacity: 0.55;
+      }
+
+      @media (max-width: 920px) {
+        button {
+          cursor: pointer;
+          width: 100%;
+        }
+        .controls {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .side h2 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 650;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+      }
+
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.18);
+        min-width: 0;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      input[type="file"],
+      input[type="range"],
+      select,
+      input[type="number"] {
+        cursor: none;
+      }
+
+      select,
+      input[type="number"] {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        outline: none;
+      }
+
+      /* FIX: preview wrap di layar kecil */
+      .preview {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.4;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .toast {
+        margin-top: 10px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.75);
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.12);
+        overflow-wrap: anywhere;
+      }
+
+      /* ===== Custom Hammer Cursor ===== */
+      .hammer-cursor {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 92px;
+        height: 92px;
+        pointer-events: none;
+        z-index: 9999;
+        transform: translate(-9999px, -9999px);
+        filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.45));
+        will-change: transform;
+      }
+      .hammer-cursor img {
+        width: 100%;
+        height: 100%;
+        user-select: none;
+        -webkit-user-drag: none;
+        transform-origin: 68% 28%;
+        transform: rotate(-18deg) translate(6px, 2px);
+        transition: transform 70ms ease-out;
+      }
+      .hammer-cursor.down img {
+        transform: rotate(35deg) translate(10px, 12px) scale(1.02);
+      }
+      .hammer-cursor.recoil img {
+        transform: rotate(28deg) translate(6px, 6px) scale(0.98);
+      }
+
+      /* ===== Hit FX ===== */
+      .hitfx {
+        position: fixed;
+        width: 16px;
+        height: 16px;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+        z-index: 9998;
+        transform: translate(-9999px, -9999px);
+      }
+      .hitfx .ring {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+        animation: ring 240ms ease-out forwards;
+      }
+      .hitfx .spark {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 2px;
+        height: 10px;
+        border-radius: 2px;
+        background: rgba(96, 165, 250, 0.95);
+        transform-origin: 50% 100%;
+        opacity: 0;
+        animation: spark 260ms ease-out forwards;
+      }
+      @keyframes ring {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.2);
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(3.2);
+        }
+      }
+      @keyframes spark {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) rotate(var(--a)) translateY(0px)
+            scaleY(0.5);
+        }
+        20% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) rotate(var(--a)) translateY(-26px)
+            scaleY(1.2);
+        }
+      }
+
+      /* ===== Mobile / Touch UX improvements ===== */
+      @media (hover: none) and (pointer: coarse) {
+        .hammer-cursor {
+          display: none; /* FIX: cursor palu tidak perlu di touch */
+        }
+      }
+
+      /* kecilkan padding panel di layar sempit biar gak kepotong */
+      @media (max-width: 520px) {
+        .panel,
+        .side {
+          padding: 12px;
+        }
+        .grid {
+          gap: 10px;
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Custom hammer cursor (desktop only) -->
+    <div class="hammer-cursor" id="hammerCursor" aria-hidden="true">
+      <img id="hammerImg" alt="Palu" />
+    </div>
+
+    <div class="page">
+      <div class="wrap">
+        <div class="panel">
+          <h1>🔨🐭 Pukul MUS</h1>
+
+          <div class="meta">
+            <div class="pill">
+              <span class="k">Skor</span>
+              <span id="score" class="v good">0</span>
+            </div>
+            <div class="pill">
+              <span class="k">Waktu</span>
+              <span id="time" class="v">30</span><span class="k">detik</span>
+            </div>
+            <div class="pill">
+              <span class="k">Status</span>
+              <span id="status" class="v">Siap</span>
+            </div>
+          </div>
+
+          <div class="grid" id="grid" aria-label="Papan permainan"></div>
+
+          <div class="controls">
+            <button class="primary" id="startBtn">Start</button>
+            <button class="danger" id="stopBtn" disabled>Stop</button>
+            <button id="resetBtn">Reset Skor</button>
+          </div>
+
+          <div
+            style="
+              font-size: 12px;
+              color: rgba(255, 255, 255, 0.55);
+              margin-top: 10px;
+              overflow-wrap: anywhere;
+            "
+          >
+            Default: <code>./assets/mus-normal.png</code> &amp;
+            <code>./assets/mus-hit.png</code> | Sound:
+            <code>./assets/hit-sound.mp3</code>
+          </div>
+        </div>
+
+        <aside class="side">
+          <h2>Pengaturan</h2>
+
+          <div class="row">
+            <label>Upload Aset Normal (override default)</label>
+            <input type="file" id="fileNormal" accept="image/*" />
+            <div class="preview">
+              <div class="avatar" id="previewNormal">
+                <span style="color: rgba(255, 255, 255, 0.55); font-size: 12px"
+                  >Default PNG</span
+                >
+              </div>
+              <div class="hint">Normal (default / upload)</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <label>Upload Aset Terpukul (override default)</label>
+            <input type="file" id="fileHit" accept="image/*" />
+            <div class="preview">
+              <div class="avatar" id="previewHit">
+                <span style="color: rgba(255, 255, 255, 0.55); font-size: 12px"
+                  >Default PNG</span
+                >
+              </div>
+              <div class="hint">Terpukul (default / upload)</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <label>Volume Sound (0 - 100)</label>
+            <input type="range" id="volumeRange" min="0" max="100" value="50" />
+            <div class="hint">Volume: <span id="volumeLabel">50</span>%</div>
+          </div>
+
+          <div class="row">
+            <label>Durasi game (detik)</label>
+            <input
+              type="number"
+              id="durationInput"
+              min="5"
+              max="180"
+              value="30"
+            />
+          </div>
+
+          <div class="row">
+            <label>Kesulitan</label>
+            <select id="difficulty">
+              <option value="easy">Mudah</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Susah</option>
+              <option value="insane">Niat banget</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label>Ukuran MUS</label>
+            <input type="range" id="sizeRange" min="50" max="100" value="100" />
+          </div>
+
+          <div class="toast" id="toast">
+            Klik untuk menghantam. Sound aktif saat memukul berhasil.
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      // ===== Default assets (PNG + MP3) =====
+      const DEFAULT_MOLE_NORMAL = "./assets/mus-normal.png";
+      const DEFAULT_MOLE_HIT = "./assets/mus-hit.png";
+      const HIT_SOUND_SRC = "./assets/hit-sound.mp3";
+
+      // ===== Helpers =====
+      const $ = (sel) => document.querySelector(sel);
+      const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+      // ===== Hammer assets (SVG inline; cursor) =====
+      const HAMMER_UP_SRC = hammerSvgUp();
+      const HAMMER_DOWN_SRC = hammerSvgDown();
+
+      function hammerSvgUp() {
+        const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+          <defs>
+            <linearGradient id="m" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#9ca3af"/>
+              <stop offset="1" stop-color="#e5e7eb"/>
+            </linearGradient>
+            <linearGradient id="w" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#a16207"/>
+              <stop offset="1" stop-color="#f59e0b"/>
+            </linearGradient>
+          </defs>
+          <g transform="translate(26,18)">
+            <rect x="120" y="54" width="44" height="126" rx="18" fill="url(#w)" stroke="rgba(0,0,0,.35)" stroke-width="6"/>
+            <rect x="108" y="12" width="96" height="58" rx="18" fill="url(#m)" stroke="rgba(0,0,0,.35)" stroke-width="6"/>
+            <rect x="84" y="26" width="38" height="30" rx="12" fill="rgba(17,24,39,.2)"/>
+            <rect x="122" y="160" width="40" height="30" rx="14" fill="rgba(17,24,39,.18)"/>
+            <circle cx="142" cy="184" r="10" fill="rgba(255,255,255,.15)"/>
+          </g>
+        </svg>
+      `.trim();
+        return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      }
+
+      function hammerSvgDown() {
+        const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+          <defs>
+            <linearGradient id="m" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#9ca3af"/>
+              <stop offset="1" stop-color="#e5e7eb"/>
+            </linearGradient>
+            <linearGradient id="w" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#a16207"/>
+              <stop offset="1" stop-color="#f59e0b"/>
+            </linearGradient>
+          </defs>
+          <g transform="translate(24,14) rotate(12 128 128)">
+            <rect x="120" y="54" width="44" height="126" rx="18" fill="url(#w)" stroke="rgba(0,0,0,.35)" stroke-width="6"/>
+            <rect x="98" y="18" width="110" height="62" rx="18" fill="url(#m)" stroke="rgba(0,0,0,.35)" stroke-width="6"/>
+            <path d="M92 74 L62 96" stroke="rgba(96,165,250,.85)" stroke-width="10" stroke-linecap="round"/>
+            <path d="M80 84 L54 114" stroke="rgba(255,255,255,.65)" stroke-width="6" stroke-linecap="round"/>
+            <rect x="84" y="34" width="38" height="30" rx="12" fill="rgba(17,24,39,.22)"/>
+            <rect x="122" y="160" width="40" height="30" rx="14" fill="rgba(17,24,39,.18)"/>
+          </g>
+        </svg>
+      `.trim();
+        return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+      }
+
+      // ===== State =====
+      const state = {
+        running: false,
+        score: 0,
+        timeLeft: 30,
+        duration: 30,
+
+        upMin: 450,
+        upMax: 900,
+        gapMin: 220,
+        gapMax: 520,
+
+        currentUpIndex: -1,
+
+        moleNormalUrl: null,
+        moleHitUrl: null,
+
+        moleSizePercent: 100,
+        canHit: new Set(),
+
+        timers: { tick: null, loop: null },
+
+        defaultHitAvailable: true,
+        volume: 0.5,
+      };
+
+      // ===== Elements =====
+      const gridEl = $("#grid");
+      const scoreEl = $("#score");
+      const timeEl = $("#time");
+      const statusEl = $("#status");
+      const toastEl = $("#toast");
+
+      const startBtn = $("#startBtn");
+      const stopBtn = $("#stopBtn");
+      const resetBtn = $("#resetBtn");
+
+      const fileNormal = $("#fileNormal");
+      const fileHit = $("#fileHit");
+      const previewNormal = $("#previewNormal");
+      const previewHit = $("#previewHit");
+
+      const volumeRange = $("#volumeRange");
+      const volumeLabel = $("#volumeLabel");
+
+      const durationInput = $("#durationInput");
+      const difficultySel = $("#difficulty");
+      const sizeRange = $("#sizeRange");
+
+      const hammerCursor = $("#hammerCursor");
+      const hammerImg = $("#hammerImg");
+      hammerImg.src = HAMMER_UP_SRC;
+
+      // ===== Audio =====
+      const hitAudio = new Audio(HIT_SOUND_SRC);
+      hitAudio.preload = "auto";
+      hitAudio.volume = state.volume;
+
+      function playHitSound() {
+        const a = hitAudio.cloneNode(true);
+        a.volume = state.volume;
+        a.currentTime = 0;
+        a.play().catch(() => {});
+      }
+
+      function setStatus(t) {
+        statusEl.textContent = t;
+      }
+      function toast(t) {
+        toastEl.textContent = t;
+      }
+
+      function setDifficulty(mode) {
+        const presets = {
+          easy: { upMin: 650, upMax: 1200, gapMin: 320, gapMax: 700 },
+          normal: { upMin: 450, upMax: 900, gapMin: 220, gapMax: 520 },
+          hard: { upMin: 320, upMax: 700, gapMin: 160, gapMax: 420 },
+          insane: { upMin: 220, upMax: 520, gapMin: 110, gapMax: 320 },
+        };
+        const p = presets[mode] ?? presets.normal;
+        state.upMin = p.upMin;
+        state.upMax = p.upMax;
+        state.gapMin = p.gapMin;
+        state.gapMax = p.gapMax;
+      }
+
+      function getMoleNormalSrc() {
+        return state.moleNormalUrl ?? DEFAULT_MOLE_NORMAL;
+      }
+
+      function getMoleHitSrcOrNull() {
+        if (state.moleHitUrl) return state.moleHitUrl;
+        if (state.defaultHitAvailable) return DEFAULT_MOLE_HIT;
+        return null;
+      }
+
+      const holes = [];
+      function buildGrid() {
+        gridEl.innerHTML = "";
+        holes.length = 0;
+
+        for (let i = 0; i < 9; i++) {
+          const hole = document.createElement("div");
+          hole.className = "hole";
+          hole.dataset.index = String(i);
+
+          const img = document.createElement("img");
+          img.className = "mole";
+          img.alt = "mus";
+          img.draggable = false;
+          img.src = getMoleNormalSrc();
+
+          hole.appendChild(img);
+
+          hole.addEventListener("mousedown", (e) => {
+            hammerDown(true);
+            spawnHitFX(e.clientX, e.clientY);
+            hole.classList.add("thud");
+            setTimeout(() => hole.classList.remove("thud"), 140);
+          });
+
+          hole.addEventListener("click", onHoleClick);
+
+          holes.push(hole);
+          gridEl.appendChild(hole);
+        }
+
+        applyMoleSize();
+      }
+
+      function applyMoleSize() {
+        for (const hole of holes) {
+          const img = hole.querySelector(".mole");
+          img.style.width = state.moleSizePercent + "%";
+          img.style.height = state.moleSizePercent + "%";
+        }
+      }
+
+      function refreshAllMolesToNormal() {
+        for (const hole of holes) {
+          hole.querySelector(".mole").src = getMoleNormalSrc();
+        }
+      }
+
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function chooseNewIndex() {
+        let idx = randInt(0, holes.length - 1);
+        if (idx === state.currentUpIndex) {
+          idx = (idx + randInt(1, holes.length - 1)) % holes.length;
+        }
+        return idx;
+      }
+
+      function hideAll() {
+        holes.forEach((h) => h.classList.remove("up", "thud"));
+        state.canHit.clear();
+        state.currentUpIndex = -1;
+        refreshAllMolesToNormal();
+      }
+
+      function popOnce() {
+        if (!state.running) return;
+
+        hideAll();
+        const idx = chooseNewIndex();
+        state.currentUpIndex = idx;
+
+        const hole = holes[idx];
+        const img = hole.querySelector(".mole");
+        img.src = getMoleNormalSrc();
+
+        hole.classList.add("up");
+        state.canHit.add(idx);
+
+        const upTime = randInt(state.upMin, state.upMax);
+        const gapTime = randInt(state.gapMin, state.gapMax);
+
+        state.timers.loop = setTimeout(() => {
+          if (!state.running) return;
+          hole.classList.remove("up");
+          state.canHit.delete(idx);
+
+          state.timers.loop = setTimeout(popOnce, gapTime);
+        }, upTime);
+      }
+
+      function startGame() {
+        if (state.running) return;
+
+        state.duration = clamp(
+          parseInt(durationInput.value || "30", 10),
+          5,
+          180,
+        );
+        state.timeLeft = state.duration;
+        setDifficulty(difficultySel.value);
+
+        state.running = true;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        state.score = 0;
+        scoreEl.textContent = String(state.score);
+
+        timeEl.textContent = String(state.timeLeft);
+        setStatus("Main!");
+        toast("Main! (layout responsive: desktop & mobile)");
+
+        hitAudio.volume = state.volume;
+
+        state.timers.tick = setInterval(() => {
+          state.timeLeft -= 1;
+          timeEl.textContent = String(state.timeLeft);
+          if (state.timeLeft <= 0) endGame();
+        }, 1000);
+
+        popOnce();
+      }
+
+      function endGame() {
+        if (!state.running) return;
+
+        state.running = false;
+        clearInterval(state.timers.tick);
+        clearTimeout(state.timers.loop);
+        hideAll();
+
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+
+        setStatus("Selesai");
+        toast(`Selesai! Skor: ${state.score}.`);
+      }
+
+      function stopGame() {
+        endGame();
+        setStatus("Stop");
+        toast("Dihentikan.");
+      }
+
+      function resetScore() {
+        state.score = 0;
+        scoreEl.textContent = "0";
+        toast("Skor direset.");
+      }
+
+      const HIT_HOLD_MS = 180;
+      function onHoleClick(e) {
+        if (!state.running) return;
+
+        const hole = e.currentTarget;
+        const idx = parseInt(hole.dataset.index, 10);
+
+        if (!state.canHit.has(idx)) return;
+
+        state.canHit.delete(idx);
+
+        state.score += 1;
+        scoreEl.textContent = String(state.score);
+
+        playHitSound();
+
+        const img = hole.querySelector(".mole");
+
+        const hitSrc = getMoleHitSrcOrNull();
+        if (hitSrc) {
+          img.src = hitSrc;
+        } else {
+          img.classList.add("fallback-hit");
+        }
+
+        setStatus("Kena!");
+        setTimeout(() => {
+          img.classList.remove("fallback-hit");
+          hole.classList.remove("up");
+          img.src = getMoleNormalSrc();
+          if (state.running) setStatus("Main!");
+        }, HIT_HOLD_MS);
+      }
+
+      function setPreview(boxEl, url, label) {
+        boxEl.innerHTML = "";
+        if (url) {
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = label;
+          boxEl.appendChild(img);
+        } else {
+          const span = document.createElement("span");
+          span.style.color = "rgba(255,255,255,.55)";
+          span.style.fontSize = "12px";
+          span.textContent = label;
+          boxEl.appendChild(span);
+        }
+      }
+
+      fileNormal.addEventListener("change", () => {
+        const file = fileNormal.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+          toast("File normal bukan gambar.");
+          fileNormal.value = "";
+          return;
+        }
+        const url = URL.createObjectURL(file);
+        state.moleNormalUrl = url;
+        setPreview(previewNormal, url, "Normal");
+        refreshAllMolesToNormal();
+        toast("Aset Normal di-set (override default).");
+      });
+
+      fileHit.addEventListener("change", () => {
+        const file = fileHit.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+          toast("File terpukul bukan gambar.");
+          fileHit.value = "";
+          return;
+        }
+        const url = URL.createObjectURL(file);
+        state.moleHitUrl = url;
+        setPreview(previewHit, url, "Terpukul");
+        toast("Aset Terpukul di-set (override default).");
+      });
+
+      function setVolumeFromUI() {
+        const v = parseInt(volumeRange.value || "50", 10);
+        const vol = clamp(v / 100, 0, 1);
+        state.volume = vol;
+        volumeLabel.textContent = String(v);
+        hitAudio.volume = vol;
+      }
+      volumeRange.addEventListener("input", setVolumeFromUI);
+
+      difficultySel.addEventListener("change", () => {
+        setDifficulty(difficultySel.value);
+        toast(
+          `Kesulitan: ${difficultySel.options[difficultySel.selectedIndex].text}`,
+        );
+      });
+
+      durationInput.addEventListener("change", () => {
+        const d = clamp(parseInt(durationInput.value || "30", 10), 5, 180);
+        durationInput.value = String(d);
+        if (!state.running) timeEl.textContent = String(d);
+      });
+
+      sizeRange.addEventListener("input", () => {
+        state.moleSizePercent = parseInt(sizeRange.value, 10);
+        applyMoleSize();
+      });
+
+      startBtn.addEventListener("click", startGame);
+      stopBtn.addEventListener("click", stopGame);
+      resetBtn.addEventListener("click", resetScore);
+
+      // ===== Hammer cursor follow (desktop) =====
+      let mouseX = 0,
+        mouseY = 0;
+      let raf = null;
+
+      function follow() {
+        const offsetX = 24;
+        const offsetY = 18;
+        hammerCursor.style.transform = `translate(${mouseX - offsetX}px, ${mouseY - offsetY}px)`;
+        raf = requestAnimationFrame(follow);
+      }
+
+      window.addEventListener(
+        "mousemove",
+        (e) => {
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+          if (!raf) raf = requestAnimationFrame(follow);
+        },
+        { passive: true },
+      );
+
+      let downTimeout = null;
+      function hammerDown(fromMouseDown) {
+        hammerCursor.classList.add("down");
+        hammerCursor.classList.remove("recoil");
+        hammerImg.src = HAMMER_DOWN_SRC;
+
+        clearTimeout(downTimeout);
+        downTimeout = setTimeout(
+          () => {
+            hammerCursor.classList.add("recoil");
+            setTimeout(() => {
+              hammerCursor.classList.remove("down", "recoil");
+              hammerImg.src = HAMMER_UP_SRC;
+            }, 70);
+          },
+          fromMouseDown ? 80 : 90,
+        );
+      }
+
+      window.addEventListener("mousedown", (e) => {
+        hammerDown(true);
+        spawnHitFX(e.clientX, e.clientY);
+      });
+
+      window.addEventListener("mouseup", () => {
+        setTimeout(() => {
+          hammerCursor.classList.remove("down", "recoil");
+          hammerImg.src = HAMMER_UP_SRC;
+        }, 40);
+      });
+
+      function spawnHitFX(x, y) {
+        const fx = document.createElement("div");
+        fx.className = "hitfx";
+        fx.style.transform = `translate(${x}px, ${y}px)`;
+
+        const ring = document.createElement("div");
+        ring.className = "ring";
+        fx.appendChild(ring);
+
+        for (let i = 0; i < 6; i++) {
+          const s = document.createElement("div");
+          s.className = "spark";
+          const angle = i * 60 + (Math.random() * 18 - 9);
+          s.style.setProperty("--a", angle + "deg");
+          s.style.height = 8 + Math.random() * 10 + "px";
+          fx.appendChild(s);
+        }
+
+        document.body.appendChild(fx);
+        setTimeout(() => fx.remove(), 320);
+      }
+
+      (function init() {
+        timeEl.textContent = String(durationInput.value);
+        setDifficulty(difficultySel.value);
+        buildGrid();
+
+        setPreview(previewNormal, DEFAULT_MOLE_NORMAL, "Default Normal");
+        setPreview(previewHit, DEFAULT_MOLE_HIT, "Default Hit");
+
+        setVolumeFromUI();
+
+        toast(
+          "Siap. Pastikan file default ada di ./assets/: mus-normal.png, mus-hit.png, hit-sound.mp3",
+        );
+      })();
+    </script>
+  </body>
+</html>
