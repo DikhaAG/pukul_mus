@@ -619,7 +619,6 @@
     </div>
 
     <script>
-      import { Analytics } from "@vercel/analytics/next";
       // ===== Default assets (PNG + MP3) =====
       const DEFAULT_MOLE_NORMAL = "./assets/mus-normal.png";
       const DEFAULT_MOLE_HIT = "./assets/mus-hit.png";
@@ -1133,5 +1132,14 @@
         );
       })();
     </script>
+    <!-- Vercel Web Analytics -->
+    <script>
+      window.va =
+        window.va ||
+        function () {
+          (window.vaq = window.vaq || []).push(arguments);
+        };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </body>
 </html>
